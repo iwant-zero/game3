@@ -1,0 +1,1012 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>Capsule vs Virus (Dr. Mario-style)</title>
+<style>
+  :root{
+    --bg:#0b0f17; --panel:#121a27; --line:#223049;
+    --text:#e7eefc; --muted:#9bb0d0;
+    --shadow:0 14px 34px rgba(0,0,0,.35); --r:18px;
+    --good:#34d399; --accent:#60a5fa; --warn:#fbbf24;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; color:var(--text);
+    font-family: system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans KR","맑은 고딕",sans-serif;
+    background:
+      radial-gradient(1200px 700px at 20% 0%, rgba(96,165,250,.25), transparent 60%),
+      radial-gradient(900px 600px at 90% 15%, rgba(52,211,153,.18), transparent 55%),
+      radial-gradient(900px 600px at 60% 100%, rgba(251,191,36,.12), transparent 55%),
+      var(--bg);
+    overscroll-behavior:none;
+    touch-action: manipulation;
+  }
+  .wrap{max-width:1100px;margin:0 auto;padding:14px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:10px 0 12px}
+  .brand{display:flex;align-items:center;gap:10px}
+  .logo{
+    width:44px;height:44px;border-radius:14px;
+    background:linear-gradient(145deg, rgba(96,165,250,.9), rgba(52,211,153,.85));
+    display:grid;place-items:center;font-weight:900;box-shadow:var(--shadow)
+  }
+  h1{margin:0;font-size:18px}
+  .sub{font-size:12px;color:var(--muted);margin-top:2px}
+  .top{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+  button{
+    border:1px solid var(--line);
+    background: rgba(18,26,39,.78);
+    color:var(--text);
+    padding:10px 12px;border-radius:14px;
+    cursor:pointer;user-select:none;
+    transition:.15s transform,.15s filter;
+  }
+  button:hover{filter:brightness(1.06)}
+  button:active{transform:translateY(1px) scale(.99)}
+  .btn-accent{border-color: rgba(96,165,250,.55); background: linear-gradient(145deg, rgba(96,165,250,.35), rgba(18,26,39,.85))}
+  .btn-good{border-color: rgba(52,211,153,.55); background: linear-gradient(145deg, rgba(52,211,153,.28), rgba(18,26,39,.85))}
+  .btn-warn{border-color: rgba(251,191,36,.55); background: linear-gradient(145deg, rgba(251,191,36,.22), rgba(18,26,39,.85))}
+
+  .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}
+  @media(max-width:980px){.grid{grid-template-columns:1fr}}
+
+  .card{
+    background: linear-gradient(180deg, rgba(18,26,39,.92), rgba(15,22,34,.92));
+    border:1px solid var(--line);
+    border-radius: var(--r);
+    box-shadow: var(--shadow);
+    padding:12px;
+    overflow:hidden;
+  }
+
+  .gameRow{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start}
+  canvas{
+    width:100%;
+    max-width: 520px;
+    aspect-ratio: 8 / 16;
+    background: rgba(0,0,0,.16);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius: 16px;
+    display:block;
+    touch-action:none;
+  }
+  .side{flex:1;min-width:240px;display:flex;flex-direction:column;gap:10px}
+  .panel{
+    background: rgba(0,0,0,.16);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:16px;
+    padding:10px 12px;
+  }
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .stat{padding:10px 12px;border-radius:16px;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.06)}
+  .k{font-size:12px;color:var(--muted)}
+  .v{font-size:18px;font-weight:900;margin-top:4px}
+  .pill{
+    font-size:12px; padding:6px 10px; border-radius:999px;
+    border:1px solid rgba(255,255,255,.12);
+    background: rgba(0,0,0,.18);
+    color:var(--muted); white-space:nowrap;
+  }
+  .row2{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+  .hint{font-size:12px;color:var(--muted);line-height:1.55}
+  .miniRow{display:flex;gap:10px;flex-wrap:wrap}
+  .miniCanvas{
+    width:120px;height:120px;border-radius:16px;
+    background:rgba(0,0,0,.16);
+    border:1px solid rgba(255,255,255,.08);
+    display:block;
+  }
+
+  .pad{
+    background: rgba(0,0,0,.16);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius: 16px;
+    padding:10px;
+  }
+  .pad b{display:block;font-size:12px;color:var(--muted);margin-bottom:8px}
+  .pad .btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .pad button{padding:12px 10px;font-weight:900}
+  .pad .wide{grid-column: span 2}
+  .toast{
+    position:fixed;left:50%;bottom:18px;transform:translateX(-50%);
+    background: rgba(15,22,34,.92);
+    border:1px solid rgba(255,255,255,.10);
+    padding:10px 12px;border-radius:14px;
+    box-shadow:var(--shadow);
+    opacity:0;pointer-events:none;
+    transition:.2s opacity,.2s transform;
+    font-size:12px;
+    max-width:min(720px, calc(100vw - 30px));
+  }
+  .toast.on{opacity:1; transform:translateX(-50%) translateY(-2px)}
+  a.link{color: rgba(96,165,250,.95); text-decoration:none}
+  a.link:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="logo">캡</div>
+      <div>
+        <h1>캡슐 vs 바이러스</h1>
+        <div class="sub">Dr. Mario 스타일 퍼즐 · 4개 연결 제거 · 중력/낙하/연쇄</div>
+      </div>
+    </div>
+    <div class="top">
+      <button class="btn-accent" id="btnStart">시작</button>
+      <button id="btnPause">일시정지</button>
+      <button class="btn-good" id="btnNew">새 게임</button>
+      <button class="btn-warn" id="btnResetBest">최고기록 초기화</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="card">
+      <div class="gameRow">
+        <canvas id="game" width="480" height="960"></canvas>
+
+        <div class="side">
+          <div class="panel">
+            <div class="stats">
+              <div class="stat"><div class="k">점수</div><div class="v" id="score">0</div></div>
+              <div class="stat"><div class="k">최고</div><div class="v" id="best">0</div></div>
+              <div class="stat"><div class="k">레벨</div><div class="v" id="level">1</div></div>
+              <div class="stat"><div class="k">남은 바이러스</div><div class="v" id="virusLeft">0</div></div>
+            </div>
+            <div class="row2">
+              <span class="pill" id="statePill">대기</span>
+              <span class="pill" id="speedPill">속도: -</span>
+              <span class="pill" id="chainPill">연쇄: 0</span>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="miniRow">
+              <div>
+                <div class="k" style="margin-bottom:6px">NEXT 캡슐</div>
+                <canvas class="miniCanvas" id="next" width="120" height="120"></canvas>
+              </div>
+              <div>
+                <div class="k" style="margin-bottom:6px">설명</div>
+                <div class="hint">
+                  • 같은 색이 <b>4개 이상</b> 가로/세로로 붙으면 제거<br/>
+                  • 제거 후 떠 있는 조각은 <b>중력으로 떨어짐</b><br/>
+                  • 바이러스 전부 제거하면 클리어!<br/>
+                  • 난이도는 레벨로 자동 증가
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pad">
+            <b>모바일/마우스 버튼</b>
+            <div class="btns">
+              <button id="btnLeft">←</button>
+              <button id="btnRight">→</button>
+              <button id="btnRotate">회전</button>
+              <button id="btnSoft">↓</button>
+              <button class="wide btn-accent" id="btnHard">하드드롭</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="hint">
+              키보드: ←/→ 이동 · ↓ 소프트드롭 · <b>Space 하드드롭</b><br/>
+              회전: <b>↑ 또는 Z</b> · P 일시정지 · R 새 게임<br/>
+              팁: 연쇄(체인) 점수 보너스가 큼.
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="hint">
+              “온라인(링크 플레이)”은 지금처럼 GitHub Pages면 충분.
+              진짜 온라인 랭킹도 원하면 붙일 수 있어.<br/>
+              <a class="link" href="#" id="shareTip">게시글에 올리는 법</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div style="font-weight:900">플레이 로그</div>
+        <span class="pill" id="miniTip">팁: 4연결</span>
+      </div>
+      <div class="hint" id="log" style="margin-top:10px;white-space:pre-line"></div>
+    </aside>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  // ===== Board =====
+  const W = 8, H = 16;          // classic-ish bottle grid
+  const CELL = 60;             // internal pixels per cell (canvas 480x960)
+  const LS_KEY = "capsule_virus_v1";
+
+  // Colors
+  const COLORS = {
+    R: { fill:"#fb7185", hi:"rgba(255,255,255,.20)" },
+    B: { fill:"#60a5fa", hi:"rgba(255,255,255,.18)" },
+    Y: { fill:"#fbbf24", hi:"rgba(255,255,255,.18)" }
+  };
+  const COLOR_KEYS = ["R","B","Y"];
+
+  // Cell types:
+  // null or { color:"R|B|Y", kind:"virus|capsule", link: number|null }
+  // link: id to connect 2 halves of capsule (same id)
+  let board = null;
+
+  // Current capsule: two blocks A/B (each has color), with pivot at (x,y) for A
+  // orientation: 0 right, 1 down, 2 left, 3 up (B relative to A)
+  let cur = null;
+  let nextCapsule = null;
+
+  // Score/Level
+  let score=0, best=0, level=1, viruses=0;
+  let running=false, paused=false, gameOver=false;
+
+  // Animation phases
+  let state = "idle"; // "falling" (player), "clearing", "gravity", "idle"
+  let chain = 0;
+  let clearMarks = null; // boolean grid
+  let phaseTimer = 0;
+
+  // Drop timing
+  let dropTimer = 0;
+  let lastTs = performance.now();
+
+  // ===== DOM =====
+  const game = document.getElementById("game");
+  const ctx = game.getContext("2d");
+  const nextC = document.getElementById("next");
+  const nextCtx = nextC.getContext("2d");
+  const $ = (id)=>document.getElementById(id);
+
+  const scoreEl = $("score");
+  const bestEl  = $("best");
+  const levelEl = $("level");
+  const virusEl = $("virusLeft");
+  const statePill = $("statePill");
+  const speedPill = $("speedPill");
+  const chainPill = $("chainPill");
+  const logEl = $("log");
+  const toastEl = $("toast");
+
+  $("btnStart").addEventListener("click", ()=>start());
+  $("btnPause").addEventListener("click", ()=>togglePause());
+  $("btnNew").addEventListener("click", ()=>newGame(true));
+  $("btnResetBest").addEventListener("click", ()=>resetBest());
+  $("btnLeft").addEventListener("click", ()=>move(-1));
+  $("btnRight").addEventListener("click", ()=>move(1));
+  $("btnRotate").addEventListener("click", ()=>rotate());
+  $("btnSoft").addEventListener("click", ()=>softDrop());
+  $("btnHard").addEventListener("click", ()=>hardDrop());
+  $("shareTip").addEventListener("click", (e)=>{ e.preventDefault(); toast("GitHub에 index.html 업로드 → Settings > Pages → main/root → 생성 링크를 게시글에 붙이면 끝"); });
+
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add("on");
+    clearTimeout(toastEl._t);
+    toastEl._t = setTimeout(()=>toastEl.classList.remove("on"), 1600);
+  }
+  function log(msg){
+    const t = new Date().toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+    logEl.textContent = `[${t}] ${msg}\n` + logEl.textContent;
+    logEl.textContent = logEl.textContent.slice(0, 2200);
+  }
+
+  // ===== Save =====
+  function loadSave(){
+    try{
+      const raw = localStorage.getItem(LS_KEY);
+      if(!raw) return { best: 0 };
+      const s = JSON.parse(raw);
+      return { best: Math.max(0, s.best|0) };
+    }catch(e){ return { best: 0 }; }
+  }
+  function saveSave(){
+    try{ localStorage.setItem(LS_KEY, JSON.stringify({best})); }catch(e){}
+  }
+  ({best} = loadSave());
+
+  // ===== Utils =====
+  const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+  const rnd = (n)=> (Math.random()*n)|0;
+
+  function emptyBoard(){
+    return Array.from({length:H}, ()=>Array.from({length:W}, ()=>null));
+  }
+  function inBounds(x,y){ return x>=0 && x<W && y>=0 && y<H; }
+
+  function getDropMs(){
+    // lower ms => faster. level up speeds.
+    return Math.max(90, 720 - (level-1)*55);
+  }
+
+  function randomColor(){
+    return COLOR_KEYS[rnd(COLOR_KEYS.length)];
+  }
+
+  // ===== Capsule spawn =====
+  let linkSeq = 1;
+  function makeCapsule(){
+    // 2 colors; classic can be random independent
+    return { a: randomColor(), b: randomColor() };
+  }
+
+  function spawnCapsule(){
+    cur = {
+      x: 3, y: 0,
+      ori: 0, // B to the right
+      a: nextCapsule.a,
+      b: nextCapsule.b,
+      link: linkSeq++,
+    };
+    nextCapsule = makeCapsule();
+
+    if(!canPlaceCur()){
+      onGameOver();
+    }
+  }
+
+  function curCells(piece=cur){
+    const ax = piece.x, ay = piece.y;
+    let bx=ax, by=ay;
+    if(piece.ori===0){ bx=ax+1; by=ay; }
+    else if(piece.ori===1){ bx=ax; by=ay+1; }
+    else if(piece.ori===2){ bx=ax-1; by=ay; }
+    else { bx=ax; by=ay-1; }
+
+    return [
+      {x:ax,y:ay,color:piece.a, part:"A"},
+      {x:bx,y:by,color:piece.b, part:"B"},
+    ];
+  }
+
+  function canPlaceCur(piece=cur){
+    for(const c of curCells(piece)){
+      if(!inBounds(c.x,c.y)) return false;
+      if(board[c.y][c.x]) return false;
+    }
+    return true;
+  }
+
+  function lockCur(){
+    const id = cur.link;
+    const cells = curCells(cur);
+    // Place as capsule halves linked by id
+    board[cells[0].y][cells[0].x] = { color: cells[0].color, kind:"capsule", link:id };
+    board[cells[1].y][cells[1].x] = { color: cells[1].color, kind:"capsule", link:id };
+
+    // After locking, resolve clears/gravity chain
+    state = "clearing";
+    chain = 0;
+    phaseTimer = 0;
+  }
+
+  // ===== Movement =====
+  function move(dx){
+    if(!running || paused || gameOver) return;
+    if(state !== "falling") return;
+    const p = {...cur, x: cur.x + dx};
+    if(canPlaceCur(p)) cur = p;
+  }
+
+  function rotate(){
+    if(!running || paused || gameOver) return;
+    if(state !== "falling") return;
+
+    const nr = (cur.ori + 1) % 4;
+    // basic wall kicks: try in place, then +/-1 x, then y+1
+    const tries = [
+      {x:cur.x,y:cur.y,ori:nr},
+      {x:cur.x+1,y:cur.y,ori:nr},
+      {x:cur.x-1,y:cur.y,ori:nr},
+      {x:cur.x,y:cur.y+1,ori:nr},
+    ];
+    for(const t of tries){
+      const p = {...cur, ...t};
+      if(canPlaceCur(p)){ cur = p; return; }
+    }
+  }
+
+  function softDrop(){
+    if(!running || paused || gameOver) return;
+    if(state !== "falling") return;
+    stepDown(true);
+  }
+
+  function hardDrop(){
+    if(!running || paused || gameOver) return;
+    if(state !== "falling") return;
+
+    let moved = 0;
+    while(stepDown(false)){ moved++; }
+    score += moved * 2;
+    lockCur();
+  }
+
+  function stepDown(addScore){
+    const p = {...cur, y: cur.y + 1};
+    if(canPlaceCur(p)){
+      cur = p;
+      if(addScore) score += 1;
+      return true;
+    }
+    // cannot move down
+    return false;
+  }
+
+  // ===== Clear + Gravity (Chain) =====
+  function findMatches(){
+    // returns set of positions to clear (4+ contiguous line in row/col)
+    const mark = Array.from({length:H}, ()=>Array(W).fill(false));
+
+    // Horizontal scan
+    for(let y=0;y<H;y++){
+      let x=0;
+      while(x<W){
+        const cell = board[y][x];
+        if(!cell){ x++; continue; }
+        const col = cell.color;
+        let x2=x+1;
+        while(x2<W && board[y][x2] && board[y][x2].color===col) x2++;
+        const len = x2-x;
+        if(len>=4){
+          for(let k=x;k<x2;k++) mark[y][k]=true;
+        }
+        x=x2;
+      }
+    }
+
+    // Vertical scan
+    for(let x=0;x<W;x++){
+      let y=0;
+      while(y<H){
+        const cell = board[y][x];
+        if(!cell){ y++; continue; }
+        const col = cell.color;
+        let y2=y+1;
+        while(y2<H && board[y2][x] && board[y2][x].color===col) y2++;
+        const len = y2-y;
+        if(len>=4){
+          for(let k=y;k<y2;k++) mark[k][x]=true;
+        }
+        y=y2;
+      }
+    }
+
+    // count
+    let count=0;
+    for(let y=0;y<H;y++) for(let x=0;x<W;x++) if(mark[y][x]) count++;
+    return {mark, count};
+  }
+
+  function applyClear(mark){
+    let removed = 0;
+    let virusRemoved = 0;
+
+    // When one half of linked capsule is removed, the other becomes unlinked (link=null)
+    // We'll process removals first, then unlink surviving halves.
+    const removedLinks = new Set();
+
+    for(let y=0;y<H;y++){
+      for(let x=0;x<W;x++){
+        if(mark[y][x] && board[y][x]){
+          const c = board[y][x];
+          if(c.kind==="virus") virusRemoved++;
+          if(c.link) removedLinks.add(c.link);
+          board[y][x] = null;
+          removed++;
+        }
+      }
+    }
+
+    // Unlink remaining halves for any link that lost one side
+    if(removedLinks.size>0){
+      for(let y=0;y<H;y++){
+        for(let x=0;x<W;x++){
+          const c = board[y][x];
+          if(c && c.kind==="capsule" && c.link && removedLinks.has(c.link)){
+            c.link = null;
+          }
+        }
+      }
+    }
+
+    return {removed, virusRemoved};
+  }
+
+  function applyGravity(){
+    // gravity for capsule halves only (viruses are fixed). Any capsule cell falls straight down
+    // as far as possible until it hits something.
+    // NOTE: This is simplified vs original game where linked halves fall together if both unsupported;
+    // We approximate by processing from bottom-up and letting each capsule cell fall if empty below.
+    let moved = false;
+
+    for(let x=0;x<W;x++){
+      for(let y=H-2;y>=0;y--){
+        const c = board[y][x];
+        if(!c) continue;
+        if(c.kind==="virus") continue;
+        // fall while below empty
+        let y2 = y;
+        while(y2+1 < H && !board[y2+1][x]){
+          y2++;
+        }
+        if(y2 !== y){
+          board[y2][x] = c;
+          board[y][x] = null;
+          moved = true;
+        }
+      }
+    }
+    return moved;
+  }
+
+  function resolveChain(dt){
+    // state machine: clearing -> gravity -> clearing -> ...
+    // we add little delays for feel
+    phaseTimer += dt;
+
+    if(state==="clearing"){
+      if(phaseTimer < 0.05) return;
+
+      const {mark, count} = findMatches();
+      clearMarks = mark;
+
+      if(count===0){
+        // No more clears => back to falling with new capsule
+        state = "idle";
+        clearMarks = null;
+        chain = 0;
+        chainPill.textContent = "연쇄: 0";
+        spawnCapsule();
+        state = "falling";
+        return;
+      }
+
+      // We have clears
+      chain++;
+      chainPill.textContent = "연쇄: " + chain;
+
+      // Apply clear immediately (visual flash is via clearMarks render)
+      const {removed, virusRemoved} = applyClear(mark);
+      viruses -= virusRemoved;
+
+      const base = removed * 10;
+      const bonus = Math.floor(base * (1 + (chain-1)*0.5));
+      score += bonus;
+
+      if(virusRemoved>0){
+        log(`바이러스 ${virusRemoved} 제거! (연쇄 ${chain}) +${bonus}점`);
+      }else{
+        log(`블록 제거 ${removed}개 (연쇄 ${chain}) +${bonus}점`);
+      }
+
+      clearMarks = null;
+      phaseTimer = 0;
+      state = "gravity";
+      return;
+    }
+
+    if(state==="gravity"){
+      if(phaseTimer < 0.06) return;
+      const moved = applyGravity();
+      phaseTimer = 0;
+      // even if not moved, we still check clearing again (maybe created match)
+      state = "clearing";
+
+      // Win check
+      if(viruses <= 0){
+        onWin();
+      }
+      return;
+    }
+  }
+
+  function onWin(){
+    running = false;
+    paused = false;
+    gameOver = true; // treat as end
+    statePill.textContent = "CLEAR!";
+    const clearBonus = 1000 + level*300;
+    score += clearBonus;
+
+    // level up for next run (optional). We'll bump the level and reset viruses if they start new.
+    if(score > best){
+      best = score;
+      saveSave();
+      toast("클리어! 최고기록 갱신!");
+    }else{
+      toast("클리어!");
+    }
+    log(`클리어 보너스 +${clearBonus}점. (레벨 ${level})`);
+    renderHUD();
+  }
+
+  function onGameOver(){
+    running = false;
+    paused = false;
+    gameOver = true;
+    statePill.textContent = "GAME OVER";
+
+    if(score > best){
+      best = score;
+      saveSave();
+      toast("최고기록 갱신!");
+      log(`최고기록 갱신: ${best}`);
+    }else{
+      toast("게임 오버");
+      log("게임 오버.");
+    }
+    renderHUD();
+  }
+
+  // ===== Virus placement =====
+  function placeViruses(){
+    // viruses count depends on level
+    const count = clamp(8 + (level-1)*3, 8, 40);
+    viruses = count;
+
+    // Place mostly in bottom 2/3 of board
+    let placed=0, tries=0;
+    while(placed < count && tries < 5000){
+      tries++;
+      const x = rnd(W);
+      const y = rnd(H);
+      if(y < 5) continue; // keep top clear
+      if(board[y][x]) continue;
+      const color = randomColor();
+      board[y][x] = { color, kind:"virus", link:null };
+      placed++;
+    }
+    viruses = placed;
+  }
+
+  // ===== Render =====
+  function clearCanvas(gctx, w, h){
+    gctx.clearRect(0,0,w,h);
+    gctx.fillStyle = "rgba(0,0,0,.10)";
+    gctx.fillRect(0,0,w,h);
+
+    // grid
+    gctx.strokeStyle = "rgba(255,255,255,.06)";
+    gctx.lineWidth = 1;
+    for(let x=0;x<=w;x+=CELL){
+      gctx.beginPath(); gctx.moveTo(x,0); gctx.lineTo(x,h); gctx.stroke();
+    }
+    for(let y=0;y<=h;y+=CELL){
+      gctx.beginPath(); gctx.moveTo(0,y); gctx.lineTo(w,y); gctx.stroke();
+    }
+
+    // bottle wall
+    gctx.strokeStyle = "rgba(255,255,255,.10)";
+    gctx.lineWidth = 6;
+    roundRect(gctx, 4, 4, w-8, h-8, 22, false, true);
+    gctx.lineWidth = 2;
+    gctx.strokeStyle = "rgba(96,165,250,.14)";
+    roundRect(gctx, 10, 10, w-20, h-20, 18, false, true);
+  }
+
+  function roundRect(gctx,x,y,w,h,r,fill,stroke){
+    const rr = Math.min(r, w/2, h/2);
+    gctx.beginPath();
+    gctx.moveTo(x+rr,y);
+    gctx.arcTo(x+w,y, x+w,y+h, rr);
+    gctx.arcTo(x+w,y+h, x,y+h, rr);
+    gctx.arcTo(x,y+h, x,y, rr);
+    gctx.arcTo(x,y, x+w,y, rr);
+    gctx.closePath();
+    if(fill) gctx.fill();
+    if(stroke) gctx.stroke();
+  }
+
+  function drawPill(gctx, cx, cy, colorKey, alpha=1, isVirus=false){
+    const c = COLORS[colorKey];
+    const r = CELL * 0.44;
+
+    // shadow
+    gctx.globalAlpha = alpha*0.35;
+    gctx.fillStyle = "rgba(0,0,0,.45)";
+    gctx.beginPath();
+    gctx.ellipse(cx+5, cy+6, r*1.02, r*0.92, 0, 0, Math.PI*2);
+    gctx.fill();
+
+    // body
+    gctx.globalAlpha = alpha;
+    gctx.fillStyle = c.fill;
+    gctx.beginPath();
+    gctx.ellipse(cx, cy, r, r*0.90, 0, 0, Math.PI*2);
+    gctx.fill();
+
+    // highlight
+    gctx.globalAlpha = alpha*0.85;
+    gctx.fillStyle = c.hi;
+    gctx.beginPath();
+    gctx.ellipse(cx - r*0.25, cy - r*0.25, r*0.45, r*0.35, -0.5, 0, Math.PI*2);
+    gctx.fill();
+
+    // virus face
+    if(isVirus){
+      gctx.globalAlpha = alpha*0.9;
+      gctx.fillStyle = "rgba(15,22,34,.75)";
+      // eyes
+      gctx.beginPath(); gctx.arc(cx - r*0.20, cy - r*0.05, r*0.10, 0, Math.PI*2); gctx.fill();
+      gctx.beginPath(); gctx.arc(cx + r*0.20, cy - r*0.05, r*0.10, 0, Math.PI*2); gctx.fill();
+      // mouth
+      gctx.strokeStyle = "rgba(15,22,34,.75)";
+      gctx.lineWidth = 3;
+      gctx.beginPath();
+      gctx.arc(cx, cy + r*0.18, r*0.18, 0.1*Math.PI, 0.9*Math.PI);
+      gctx.stroke();
+    }
+
+    gctx.globalAlpha = 1;
+  }
+
+  function drawBoard(){
+    clearCanvas(ctx, game.width, game.height);
+
+    // locked cells
+    for(let y=0;y<H;y++){
+      for(let x=0;x<W;x++){
+        const cell = board[y][x];
+        if(!cell) continue;
+        const cx = x*CELL + CELL/2;
+        const cy = y*CELL + CELL/2;
+        drawPill(ctx, cx, cy, cell.color, 1, cell.kind==="virus");
+      }
+    }
+
+    // current capsule
+    if(cur && !gameOver){
+      const cells = curCells(cur);
+      for(const c of cells){
+        const cx = c.x*CELL + CELL/2;
+        const cy = c.y*CELL + CELL/2;
+        drawPill(ctx, cx, cy, c.color, 0.98, false);
+      }
+
+      // connector (visual) between halves
+      const a = cells[0], b = cells[1];
+      const ax = a.x*CELL + CELL/2, ay = a.y*CELL + CELL/2;
+      const bx = b.x*CELL + CELL/2, by = b.y*CELL + CELL/2;
+      ctx.strokeStyle = "rgba(255,255,255,.18)";
+      ctx.lineWidth = 10;
+      ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(bx,by); ctx.stroke();
+    }
+
+    // overlay pause/gameover
+    if(paused || (gameOver && statePill.textContent !== "CLEAR!")){
+      ctx.fillStyle = "rgba(0,0,0,.55)";
+      ctx.fillRect(0,0,game.width,game.height);
+      ctx.fillStyle = "rgba(231,238,252,.92)";
+      ctx.font = "900 54px system-ui,sans-serif";
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(paused ? "PAUSED" : "GAME OVER", game.width/2, game.height/2 - 10);
+      ctx.font = "700 18px system-ui,sans-serif";
+      ctx.fillStyle = "rgba(155,176,208,.95)";
+      ctx.fillText("새 게임 버튼으로 재시작", game.width/2, game.height/2 + 48);
+      ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
+    }
+
+    if(gameOver && statePill.textContent === "CLEAR!"){
+      ctx.fillStyle = "rgba(0,0,0,.45)";
+      ctx.fillRect(0,0,game.width,game.height);
+      ctx.fillStyle = "rgba(52,211,153,.95)";
+      ctx.font = "900 58px system-ui,sans-serif";
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText("CLEAR!", game.width/2, game.height/2 - 12);
+      ctx.fillStyle = "rgba(231,238,252,.92)";
+      ctx.font = "700 18px system-ui,sans-serif";
+      ctx.fillText("새 게임으로 다음 레벨 도전", game.width/2, game.height/2 + 50);
+      ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
+    }
+  }
+
+  function drawNext(){
+    clearCanvas(nextCtx, 120, 120);
+    if(!nextCapsule) return;
+
+    const size = 4, cell = 24;
+    const offX = (120 - size*cell)/2;
+    const offY = (120 - size*cell)/2;
+
+    // show as horizontal capsule
+    const ax = offX + 1*cell + cell/2;
+    const ay = offY + 2*cell + cell/2;
+    const bx = offX + 2*cell + cell/2;
+    const by = offY + 2*cell + cell/2;
+
+    // connector
+    nextCtx.strokeStyle = "rgba(255,255,255,.18)";
+    nextCtx.lineWidth = 7;
+    nextCtx.lineCap = "round";
+    nextCtx.beginPath(); nextCtx.moveTo(ax,ay); nextCtx.lineTo(bx,by); nextCtx.stroke();
+
+    drawPill(nextCtx, ax, ay, nextCapsule.a, 0.98, false);
+    drawPill(nextCtx, bx, by, nextCapsule.b, 0.98, false);
+  }
+
+  function renderHUD(){
+    scoreEl.textContent = score|0;
+    bestEl.textContent = best|0;
+    levelEl.textContent = level|0;
+    virusEl.textContent = viruses|0;
+    speedPill.textContent = `속도: ${getDropMs()}ms`;
+    chainPill.textContent = `연쇄: ${chain|0}`;
+  }
+
+  function drawAll(){
+    drawBoard();
+    drawNext();
+    renderHUD();
+  }
+
+  // ===== Game loop =====
+  function start(){
+    if(!board) newGame(true);
+    if(gameOver) newGame(true);
+    running = true;
+    paused = false;
+    if(state !== "falling"){
+      state = "falling";
+    }
+    statePill.textContent = "진행 중";
+    toast("시작!");
+  }
+
+  function togglePause(){
+    if(!board || gameOver) return;
+    if(!running){
+      start(); return;
+    }
+    paused = !paused;
+    statePill.textContent = paused ? "일시정지" : "진행 중";
+    toast(paused ? "일시정지" : "재개");
+  }
+
+  function resetBest(){
+    if(!confirm("최고기록을 초기화할까요?")) return;
+    best = 0;
+    saveSave();
+    toast("최고기록 초기화");
+    drawAll();
+  }
+
+  function newGame(keepLevel=false){
+    // Increase difficulty if you cleared previously: optional
+    if(!keepLevel){
+      level = 1;
+    }
+    score = 0;
+    chain = 0;
+    clearMarks = null;
+    phaseTimer = 0;
+
+    board = emptyBoard();
+    nextCapsule = makeCapsule();
+    placeViruses();
+
+    running = false;
+    paused = false;
+    gameOver = false;
+
+    state = "idle";
+    spawnCapsule();
+    state = "falling";
+
+    statePill.textContent = "대기";
+    log("새 게임 준비. 시작을 누르세요.");
+    drawAll();
+  }
+
+  function step(ts){
+    const dt = Math.min(0.05, Math.max(0, (ts - lastTs)/1000));
+    lastTs = ts;
+
+    if(running && !paused && !gameOver){
+      if(state === "falling"){
+        // gravity for active capsule
+        dropTimer += dt * 1000;
+        const ms = getDropMs();
+        if(dropTimer >= ms){
+          dropTimer -= ms;
+          const moved = stepDown(false);
+          if(!moved){
+            lockCur();
+          }
+        }
+      } else if(state === "clearing" || state === "gravity"){
+        resolveChain(dt);
+      }
+    }
+
+    // best update
+    if(score > best){
+      best = score;
+      saveSave();
+    }
+
+    drawAll();
+    requestAnimationFrame(step);
+  }
+
+  // ===== Keyboard =====
+  window.addEventListener("keydown", (e)=>{
+    if(["ArrowLeft","ArrowRight","ArrowDown","ArrowUp"," "].includes(e.key)) e.preventDefault();
+
+    if(e.key === "p" || e.key === "P"){ togglePause(); return; }
+    if(e.key === "r" || e.key === "R"){ newGame(true); start(); return; }
+
+    if(!running || paused || gameOver) return;
+
+    if(state !== "falling") return;
+
+    if(e.key === "ArrowLeft") move(-1);
+    else if(e.key === "ArrowRight") move(1);
+    else if(e.key === "ArrowDown") softDrop();
+    else if(e.key === "ArrowUp" || e.key === "z" || e.key === "Z") rotate();
+    else if(e.key === " ") hardDrop();
+  }, {passive:false});
+
+  // ===== Touch gestures (optional) =====
+  // tap rotate, swipe left/right move, swipe down hard drop, small down -> soft
+  let touchStart = null;
+  game.addEventListener("pointerdown", (e)=>{
+    if(e.pointerType === "mouse") return;
+    game.setPointerCapture(e.pointerId);
+    touchStart = {x:e.clientX, y:e.clientY, t:performance.now(), moved:false};
+  });
+  game.addEventListener("pointermove", (e)=>{
+    if(!touchStart) return;
+    const dx = e.clientX - touchStart.x;
+    const dy = e.clientY - touchStart.y;
+    if(Math.abs(dx)>18 || Math.abs(dy)>18) touchStart.moved = true;
+
+    if(!running || paused || gameOver) return;
+    if(state !== "falling") return;
+
+    if(Math.abs(dx) > 34 && Math.abs(dx) > Math.abs(dy)){
+      if(dx>0) move(1); else move(-1);
+      touchStart.x = e.clientX;
+    }
+    if(dy > 28 && Math.abs(dy) > Math.abs(dx)){
+      softDrop();
+      touchStart.y = e.clientY;
+    }
+  });
+  game.addEventListener("pointerup", (e)=>{
+    if(!touchStart) return;
+    const dx = e.clientX - touchStart.x;
+    const dy = e.clientY - touchStart.y;
+    const dt = performance.now() - touchStart.t;
+
+    if(!running || paused || gameOver) { touchStart=null; return; }
+
+    if(!touchStart.moved && dt < 250){
+      if(state==="falling") rotate();
+    }else{
+      if(dy > 120 && state==="falling") hardDrop();
+    }
+    touchStart = null;
+  });
+
+  // ===== Init =====
+  bestEl.textContent = best|0;
+  newGame(true);
+  log("대기 중. 시작 버튼을 누르세요.");
+  drawAll();
+  requestAnimationFrame(step);
+})();
+</script>
+</body>
+</html>
